@@ -32,6 +32,7 @@ The following optional environment variables can also be set:
   * `MASTER_TERMINATE_VOLUME`: delete the volume when master instance is destroy, defaults to True
   * `MASTER_VOLUME_SIZE`: size of the master volume
   * `MASTER_MEMORY`: how many MB of memory should master have, defaults to 4 GB
+  * `K8S_VERSION`: the version of Kubernentes. Defaults to 1.6.2
 
 Spin up a new cluster:
 
