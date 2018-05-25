@@ -23,7 +23,7 @@ spec:
     - --service-account-private-key-file=/etc/kubernetes/pki/sa.key
     - --cluster-signing-key-file=/etc/kubernetes/pki/ca.key
     - --cloud-provider=external
-    image: gcr.io/google_containers/kube-controller-manager-amd64:v1.10.0
+    image: gcr.io/google_containers/kube-controller-manager-amd64:v1.10.2
     livenessProbe:
       failureThreshold: 8
       httpGet:
