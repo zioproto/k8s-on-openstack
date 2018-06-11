@@ -40,7 +40,7 @@
 - name: Configure keystone integration
   blockinfile:
     insertbefore: 'image: '
-    block: "    - --authentication-token-webhook-config-file=/etc/kubernetes/pki/webhook.kubeconfig.yaml"
+    block: "    - --authentication-token-webhook-config-file=/etc/kubernetes/pki/webhook.kubeconfig.yaml\n    - --authorization-mode=Node,Webhook,RBAC"
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
 
 - name: In case of upgrade make sure container versions are right for kube-apiserver
