@@ -27,6 +27,19 @@
     dest: /etc/kubernetes/manifests/kube-controller-manager.yaml
     src: files/kube-controller-manager.yaml
 
+- name: Create folder /home/ubuntu/manifests
+  file:
+    state: directory
+    path: /home/ubuntu/manifests
+    mode: 0755
+    owner: ubuntu
+    group: ubuntu
+
+- name: Upload webook kubeconfig file
+  copy:
+    dest: /etc/kubernetes/pki/webhook.kubeconfig.yaml
+    src: files/webhook.kubeconfig.yaml
+
 - name: Upload the k8s-keystone-auth deployment manifest
   template:
     dest: /home/ubuntu/manifests/k8s-keystone-auth.yaml
