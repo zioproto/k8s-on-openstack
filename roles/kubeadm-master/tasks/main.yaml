@@ -27,14 +27,9 @@
     dest: /etc/kubernetes/manifests/kube-controller-manager.yaml
     src: files/kube-controller-manager.yaml
 
-- name: Upload webook kubeconfig file
-  copy:
-    dest: /etc/kubernetes/pki/webhook.kubeconfig.yaml
-    src: files/webhook.kubeconfig.yaml
-
-- name: Upload webook kubeconfig file
+- name: Upload the k8s-keystone-auth deployment manifest
   template:
-    dest: /etc/kubernetes/manifests/k8s-keystone-auth.yaml
+    dest: /home/ubuntu/manifests/k8s-keystone-auth.yaml
     src: files/k8s-keystone-auth.yaml.j2
 
 - name: Configure keystone integration

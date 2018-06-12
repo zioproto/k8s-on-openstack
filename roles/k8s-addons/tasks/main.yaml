@@ -11,3 +11,23 @@
 
 - name: kubectl apply admin-user for dashboard
   command: kubectl apply -f /home/ubuntu/manifests/admin-user.yaml
+
+- name: check if keystone-auth-secret exists
+  command: kubectl get secret keystone-auth-secret -n kube-system
+  register: getsecret
+
+- name: create secret keystone-auth-secret
+  command: kubectl create secret generic keystone-auth-secret --from-file=cert-file=/etc/kubernetes/pki/apiserver.crt --from-file=key-file=/etc/kubernetes/pki/apiserver.key -n kube-system
+  become: true
+  when: getsecret.rc == 1
+
+- name: copy k8s-auth-policy.yaml
+  copy:
+    src: k8s-auth-policy.yaml
+    dest: /home/ubuntu/manifests/k8s-auth-policy.yaml
+
+- name: apply
+  command: kubectl apply -f /home/ubuntu/manifests/k8s-auth-policy.yaml
+
+- name: kubectl apply admin-user for dashboard
+  command: kubectl apply -f /home/ubuntu/manifests/k8s-keystone-auth.yaml

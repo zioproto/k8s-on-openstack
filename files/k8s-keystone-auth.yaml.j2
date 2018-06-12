@@ -1,47 +1,55 @@
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  annotations:
-    scheduler.alpha.kubernetes.io/critical-pod: ""
-  creationTimestamp: null
-  labels:
-    component: k8s-keystone-auth
-    tier: control-plane
   name: k8s-keystone-auth
   namespace: kube-system
+  labels:
+    app: k8s-keystone-auth
 spec:
-  containers:
-  - command:
-    - ./bin/k8s-keystone-auth
-    - --tls-cert-file
-    - /etc/kubernetes/pki/apiserver.crt
-    - --tls-private-key-file
-    - /etc/kubernetes/pki/apiserver.key
-    - --keystone-url
-    - {{ lookup('env','OS_AUTH_URL') | replace("v2.0","v3") }}
-    - --policies-configmap-name k8s-auth-policy
-    image: lingxiankong/k8s-keystone-auth:configmap-on-the-fly
-    imagePullPolicy: Always
-    name: k8s-keystone-auth
-    resources:
-      requests:
-        cpu: 250m
-    volumeMounts:
-    - mountPath: /etc/kubernetes/pki
-      name: k8s-certs
-      readOnly: true
-    - mountPath: /etc/ssl/certs
-      name: ca-certs
-      readOnly: true
-  hostNetwork: true
-  volumes:
-  - hostPath:
-      path: /etc/kubernetes/pki
-      type: DirectoryOrCreate
-    name: k8s-certs
-  - hostPath:
-      path: /etc/ssl/certs
-      type: DirectoryOrCreate
-    name: ca-certs
-status: {}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-keystone-auth
+  template:
+    metadata:
+      labels:
+        app: k8s-keystone-auth
+    spec:
+      containers:
+        - name: k8s-keystone-auth
+          image: zioproto/k8s-keystone-auth:d889d69f-dirty
+          imagePullPolicy: Always
+          args:
+            - ./bin/k8s-keystone-auth
+            - --tls-cert-file
+            - /etc/kubernetes/pki/cert-file
+            - --tls-private-key-file
+            - /etc/kubernetes/pki/key-file
+            - --policy-configmap-name
+            - k8s-auth-policy
+            - --keystone-url
+            - {{ lookup('env','OS_AUTH_URL') | replace("v2.0","v3") }}
+          volumeMounts:
+          - mountPath: /etc/kubernetes/pki
+            name: k8s-certs
+            readOnly: true
+          ports:
+            - containerPort: 8443
+      volumes:
+      - name: k8s-certs
+        secret:
+          secretName: keystone-auth-secret
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: k8s-keystone-auth-service
+  namespace: kube-system
+spec:
+  selector:
+    app: k8s-keystone-auth
+  ports:
+    - protocol: TCP
+      port: 8443
+      targetPort: 8443
