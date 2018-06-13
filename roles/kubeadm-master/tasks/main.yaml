@@ -45,6 +45,13 @@
     dest: /home/ubuntu/manifests/k8s-keystone-auth.yaml
     src: files/k8s-keystone-auth.yaml.j2
 
+
+- name: copy k8s-auth-policy.yaml
+  copy:
+    src: k8s-auth-policy.yaml
+    dest: /home/ubuntu/manifests/k8s-auth-policy.yaml
+
+
 - name: Configure keystone integration
   blockinfile:
     insertbefore: 'image: '
@@ -102,3 +109,25 @@
   fetch:
     src: /etc/kubernetes/pki/ca.crt
     dest: /tmp/
+
+#- name: wait for API service to be active
+#  wait_for:
+#    port: 6443
+#    host: 127.0.0.1
+#    delay: 3
+#  connection: local
+
+- name: check if keystone-auth-secret exists
+  command: kubectl get secret keystone-auth-secret -n kube-system --kubeconfig=/home/ubuntu/.kube/config
+  register: getsecret
+  ignore_errors: true
+
+- name: create secret keystone-auth-secret
+  command: kubectl create secret generic keystone-auth-secret --from-file=cert-file=/etc/kubernetes/pki/apiserver.crt --from-file=key-file=/etc/kubernetes/pki/apiserver.key -n kube-system --kubeconfig=/home/ubuntu/.kube/config
+  when: getsecret.rc == 1
+
+- name: kubectl apply k8s-auth-policy
+  command: kubectl apply -f /home/ubuntu/manifests/k8s-auth-policy.yaml --kubeconfig=/home/ubuntu/.kube/config
+
+- name: kubectl apply k8s-keystone-auth
+  command: kubectl apply -f /home/ubuntu/manifests/k8s-keystone-auth.yaml --kubeconfig=/home/ubuntu/.kube/config
