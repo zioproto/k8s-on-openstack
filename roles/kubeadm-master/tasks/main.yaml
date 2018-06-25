@@ -3,25 +3,24 @@
     path: /etc/kubernetes/kubelet.conf
   register: kubelet_conf
 
-- name: kubeadm token generate
-  command: kubeadm token generate
-  register: token1
-  when: kubelet_conf.stat.exists == False
-
-- name: kubeadm get existing token
-  command: sh -c "kubeadm token list | awk '/The default bootstrap token/ { print $1; }'"
-  register: token2
-  when: kubelet_conf.stat.exists == True
-
-# https://github.com/ansible/ansible/issues/4297
-- name: token
-  set_fact:
-    token: "{{ token1 if kubelet_conf.stat.exists == False else token2 }}"
-
 - name: kubeadm init
-  command: "kubeadm init --skip-preflight-checks --token {{ token.stdout }} --kubernetes-version v1.10.2 --apiserver-advertise-address {{ hostvars[groups.master[0]].ansible_ssh_host }}"
+  command: "kubeadm init --skip-preflight-checks --kubernetes-version v1.10.3 --apiserver-advertise-address {{ hostvars[groups.master[0]].ansible_ssh_host }}"
   args:
     creates: /etc/kubernetes/kubelet.conf
+  when: kubelet_conf.stat.exists == False
+
+- name: generate a join token
+  command: kubeadm token create --print-join-command
+  register: joincommand
+
+- name: set fact joincommand
+  set_fact:
+    joincommand: "{{ joincommand.stdout }}"
+
+- name: Upload the openstack-cloud-controller-manager pod descriptor
+  copy:
+    dest: /etc/kubernetes/manifests/openstack-cloud-controller-manager-pod.yaml
+    src: files/openstack-cloud-controller-manager-pod.yaml
 
 - name: Configure kube-controller-manager cloud provider integration
   copy:
@@ -33,34 +32,29 @@
     dest: /etc/kubernetes/pki/webhook.kubeconfig.yaml
     src: files/webhook.kubeconfig.yaml
 
-- name: Upload webook kubeconfig file
-  template:
-    dest: /etc/kubernetes/manifests/k8s-keystone-auth.yaml
-    src: files/k8s-keystone-auth.yaml.j2
-
 - name: Configure keystone integration
   blockinfile:
     insertbefore: 'image: '
-    block: "    - --authentication-token-webhook-config-file=/etc/kubernetes/pki/webhook.kubeconfig.yaml"
+    block: "    - --authentication-token-webhook-config-file=/etc/kubernetes/pki/webhook.kubeconfig.yaml\n    - --authorization-mode=Node,Webhook,RBAC\n    - --authorization-webhook-config-file=/etc/kubernetes/pki/webhook.kubeconfig.yaml"
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
 
 - name: In case of upgrade make sure container versions are right for kube-apiserver
   replace:
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
     regexp: v1.[0-9]{1,2}.[0-9]{1,2}
-    replace: v1.10.2
+    replace: v1.10.3
 
 - name: In case of upgrade make sure container versions are right for kube-controller-manager
   replace:
     path: /etc/kubernetes/manifests/kube-controller-manager.yaml
     regexp: v1.[0-9]{1,2}.[0-9]{1,2}
-    replace: v1.10.2
+    replace: v1.10.3
 
 - name: In case of upgrade make sure container versions are right for kube-scheduler
   replace:
     path: /etc/kubernetes/manifests/kube-scheduler.yaml
     regexp: v1.[0-9]{1,2}.[0-9]{1,2}
-    replace: v1.10.2
+    replace: v1.10.3
 
 - name: Ensure kubectl configuration directory is present
   become: True

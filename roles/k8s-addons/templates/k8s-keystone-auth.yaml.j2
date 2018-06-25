@@ -20,17 +20,10 @@ spec:
     - /etc/kubernetes/pki/apiserver.key
     - --keystone-url
     - {{ lookup('env','OS_AUTH_URL') | replace("v2.0","v3") }}
-    image: zioproto/k8s-keystone-auth
+    - --policy-configmap-name
+    - k8s-auth-policy
+    image: lingxiankong/k8s-keystone-auth:configmap-on-the-fly
     imagePullPolicy: Always
-    #livenessProbe:
-    #  failureThreshold: 8
-    #  httpGet:
-    #    host: 127.0.0.1
-    #    path: /healthz
-    #    port: 6443
-    #    scheme: HTTPS
-    #  initialDelaySeconds: 15
-    #  timeoutSeconds: 15
     name: k8s-keystone-auth
     resources:
       requests:
@@ -42,6 +35,13 @@ spec:
     - mountPath: /etc/ssl/certs
       name: ca-certs
       readOnly: true
+  serviceAccount: admin-user
+  serviceAccountName: admin-user
+  nodeSelector:
+    node-role.kubernetes.io/master: ""
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
   hostNetwork: true
   volumes:
   - hostPath:
